@@ -95,6 +95,12 @@ void MyEQAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
+    juce::dsp::ProcessSpec spec;
+    spec.maximumBlockSize = samplesPerBlock;
+    spec.numChannels = 1;
+    spec.sampleRate = sampleRate;
+    leftChain.prepare(spec);
+    rightChain.prepare(spec);
 }
 
 void MyEQAudioProcessor::releaseResources()
@@ -143,7 +149,18 @@ void MyEQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
     // this code if your algorithm always overwrites all the output channels.
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
+    
+    // creating audio  blocks which represent each individual channels
+    juce::dsp::AudioBlock<float> block;
 
+    auto leftBlock = block.getSingleChannelBlock(0);
+    auto rightBlock = block.getSingleChannelBlock(1);
+
+    juce::dsp::ProcessContextReplacing<float> leftContext(leftBlock);
+    juce::dsp::ProcessContextReplacing<float> rightContext(rightBlock);
+
+    leftChain.process(leftContext);
+    rightChain.process(rightContext);
     // This is the place where you'd normally do the guts of your plugin's
     // audio processing...
     // Make sure to reset the state if your inner loop is processing
@@ -167,6 +184,7 @@ bool MyEQAudioProcessor::hasEditor() const
 juce::AudioProcessorEditor* MyEQAudioProcessor::createEditor()
 {
     // return new MyEQAudioProcessorEditor (*this);
+    // this is only used for easily demonstrating the sliders
     return new juce::GenericAudioProcessorEditor(*this);
 }
 
